@@ -4,9 +4,10 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  StyleSheet
+  StyleSheet,
+  Platform
 } from "react-native";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import * as Speech from "expo-speech";
 
 export default function HomeScreen() {
@@ -15,34 +16,17 @@ export default function HomeScreen() {
   const [name, setName] = useState("");
   const [tasks, setTasks] = useState<string[]>([]);
 
-  // 🔊 Speak function
+  // 🔊 Cross-platform Speak
   const speak = (text: string) => {
-    Speech.speak(text);
-  };
-
-  // 💾 Load saved data
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    const savedName = await AsyncStorage.getItem("jarvis_name");
-    const savedTasks = await AsyncStorage.getItem("jarvis_tasks");
-
-    if (savedName) setName(savedName);
-    if (savedTasks) setTasks(JSON.parse(savedTasks));
-  };
-
-  const saveData = async (newName?: string, newTasks?: string[]) => {
-    if (newName !== undefined) {
-      await AsyncStorage.setItem("jarvis_name", newName);
-    }
-    if (newTasks !== undefined) {
-      await AsyncStorage.setItem("jarvis_tasks", JSON.stringify(newTasks));
+    if (Platform.OS === "web") {
+      const msg = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(msg);
+    } else {
+      Speech.speak(text);
     }
   };
 
-  // 🧠 MAIN JARVIS LOGIC
+  // 🧠 JARVIS LOGIC
   const handleCommand = (cmd: string) => {
     let response = "I didn't understand that.";
 
@@ -53,12 +37,11 @@ export default function HomeScreen() {
         : "Hello sir, what should I call you?";
     }
 
-    // Save name
+    // Save Name
     else if (cmd.startsWith("my name is")) {
       const newName = cmd.replace("my name is", "").trim();
       setName(newName);
-      saveData(newName, tasks);
-      response = `Nice to meet you, ${newName}. I will remember that.`;
+      response = `Nice to meet you, ${newName}.`;
     }
 
     // Time
@@ -98,7 +81,6 @@ export default function HomeScreen() {
       if (task) {
         const updatedTasks = [...tasks, task];
         setTasks(updatedTasks);
-        saveData(name, updatedTasks);
         response = `Task added: ${task}`;
       } else {
         response = "Please specify a task.";
@@ -117,13 +99,12 @@ export default function HomeScreen() {
     // Clear Tasks
     else if (cmd.includes("clear tasks")) {
       setTasks([]);
-      saveData(name, []);
       response = "All tasks cleared.";
     }
 
     // Identity
     else if (cmd.includes("who are you")) {
-      response = "I am Jarvis, your personal AI assistant.";
+      response = "I am Jarvis, your personal assistant.";
     }
 
     // Default
@@ -141,7 +122,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>JARVIS</Text>
+      <Text style={styles.title}>JARVIS 🤖</Text>
 
       <ScrollView style={styles.chat}>
         {messages.map((m, i) => (
